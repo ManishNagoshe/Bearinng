@@ -1,0 +1,310 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <script src="src/graph.ob.js"></script>
+</head>
+<body>
+    <table style="width:100%">
+        <tr>
+            <td>
+                <div id="acc" style="width:500px;height:500px"></div>
+            </td>
+            <td>
+                <div id="fft" style="width:500px;height:500px"></div>
+            </td>
+        </tr>
+    </table>
+    
+    
+    <table id="tt"></table>
+    <script>
+        var data1 = [];
+        var a = [];
+        var b = [];
+        var c = [];
+        var d = [];
+        var e = [];
+        var f = [];
+        var f1 = [];
+        var fimg = [];
+        var freal = [];
+        intheta=0.1;
+        theta1=0;
+        j=0;
+        var u=[];
+        for(i=0;i<=1;i=i+0.028571)
+        {
+            u[j]=i;
+            j++;
+        }
+        j=0;
+        //u=0:0.028571:1;
+        var sxx=[];
+        for(i=0;i<u.length;i++)
+        {
+            sxx[i]=-4*Math.pow(u[i],3)+6*Math.pow(u[i],2)-1;
+        }
+        //sxx=-4*u.^3+6*u.^2-1;
+        var x=-0.017176;
+        var y=-0.000000;
+        var zx=0;
+        var zy=0;
+        var ii=0;
+
+        defectstart=60;
+        defectend=60+3.684379108;
+        timep = 1.1542 / 100000;//*10^(-5);
+        var theta = [];
+        for (t = 0; t <= 0.4; t = t + timep) {
+
+            for (i = 0; i <= 8; i++) {
+                theta[i] = theta1 + i  * 40;
+
+                if (theta[i] >= 360) {
+                    theta[i] = theta[i] - 360;
+
+                }
+            }
+
+
+            theta1 = theta1 + 0.06614;
+            if (theta1 >= 360) {
+                theta1 = theta1 - 360;
+            }
+            //theta;
+
+
+            defectregion = 0;
+            var k = (4.9582 * 10000000);//*10^7);
+            var fxd = 0;
+            var fyd = 0;
+            var h = 1.1542 / 400000;//*10^(-5)/4;
+
+
+
+            for (it = 1; it <= 4; it++) {
+                fxd = 0;
+                fyd = 0;
+
+                for (i = 0; i <= 8; i++) {
+                    if (theta[i] >= defectstart && theta[i] <= defectend) {
+                        defectregion = 1;
+                        ballno = i
+                        //theta[i];
+                        thetar = theta[i] * Math.PI / 180;
+                        var cr = 20 / 1000000;//*10^(-6);
+                        var hd = 1 / 1000;//*10^(-3);
+                        var pw1 = (((x * Math.cos(thetar) + y * Math.sin(thetar)) - (cr + hd * sxx[ii])));
+                        fxd = fxd + k * Math.pow(pw1, 3.0) / 2 * Math.cos(thetar);
+                        fyd = fyd + k * Math.pow(pw1, 3.0) / 2 * Math.sin(thetar);
+                    }
+                    else {
+
+                        thetar = theta[i] * Math.PI / 180;
+                        var cr = 20/1000000;// * 10 ^ (-6);
+                        var hd = 1 / 1000;// * 10 ^ (-3);
+                        var pw1 = (((x * Math.cos(thetar) + y * Math.sin(thetar)) - (cr)));
+                        //var pw2 = Math.pow(pw1, 1.5);
+                        fxd = fxd + k * Math.pow(pw1, 3.0 )/2 * Math.cos(thetar);
+                        fyd = fyd + k * Math.pow(pw1, 3.0 )/2 * Math.sin(thetar);
+
+
+                    }
+                }
+
+
+                dzx = -424 - (200 * zx);
+                dzx = (dzx - fxd) / 4;
+                dzy = -(200 * zy);
+                dzy = (dzy - fyd) / 4;
+                x = x + h * zx;
+                y = y + h * zy;
+                zx = zx + h * dzx;
+                zy = zy + h * dzy;
+
+            }
+
+            //%CWT
+            //%dt=0.00011540; %1/size(a); 
+
+
+            a[j] = t;
+            b[j] = x;
+            c[j] = y;
+            d[j] = zx;
+            e[j] = zy;
+            f[j] = dzx;
+            if (j < 32768)
+            {
+                fimg[j] = 0;
+                freal[j] = dzx;
+            }
+            
+            f1[j] = dzy;
+            data1.push({ x: j, y: f[j] });
+            //var nrow = document.all('tt').insertRow();
+            //var ncell = nrow.insertCell();
+            //ncell.innerHTML = f[j];
+            j = j + 1;
+            //fprintf('\n %f %f %f %f %f', t, x, y, f(j - 1), f1(j - 1))
+            defectstart = defectstart + 251.3274123 * 1.1542 /100000 * 180 / Math.PI;
+
+            if (defectstart >= 360) {
+                defectstart = -(360 - defectstart);
+            }
+            defectend = defectstart + 3.684379108;
+            ii = ii + 1;
+            if (ii >= 35) {
+                ii = 1;
+            }
+
+        }
+        chart1("acc");
+        //alert(f.length);
+       
+        //miniFFT(freal, fimg);
+        miniDCT(freal);
+        var data2 = [];
+        for (i = 0; i < freal.length; i++)
+        {
+            data2.push({ x: i, y: Math.abs(freal[i])/Math.pow(2*32768,0.5) });
+        }
+        chart2("fft");
+
+        ///////
+
+        function chart1(divid) {
+
+            var chart = new CanvasJS.Chart(divid, {
+                zoomEnabled: true,
+                title: {
+                    text: "Acc"
+                },
+                toolTip: {
+                    shared: false
+
+                },
+                legend: {
+                    verticalAlign: "top",
+                    horizontalAlign: "center",
+                    fontSize: 14,
+                    fontWeight: "bold",
+                    fontFamily: "calibri",
+                    fontColor: "dimGrey"
+                },
+                axisX: {
+                    title: "X"
+                },
+                axisY: {
+
+                    includeZero: false
+                },
+                data: [{
+                    // dataSeries1
+                    type: "line",
+                    xValueType: "Float",
+                    showInLegend: true,
+                    name: "ACC",
+                    markerSize: 1,
+                    dataPoints: data1
+                }]
+            })
+            chart.render();
+
+        }
+
+        function chart2(divid) {
+
+            var chart = new CanvasJS.Chart(divid, {
+                zoomEnabled: true,
+                title: {
+                    text: "FFT"
+                },
+                toolTip: {
+                    shared: false
+
+                },
+                legend: {
+                    verticalAlign: "top",
+                    horizontalAlign: "center",
+                    fontSize: 14,
+                    fontWeight: "bold",
+                    fontFamily: "calibri",
+                    fontColor: "dimGrey"
+                },
+                axisX: {
+                    title: "X"
+                },
+                axisY: {
+
+                    includeZero: false
+                },
+                data: [{
+                    // dataSeries1
+                    type: "line",
+                    xValueType: "Float",
+                    showInLegend: true,
+                    name: "FFT",
+                    markerSize: 1,
+                    dataPoints: data2
+                }]
+            })
+            chart.render();
+
+        }
+        function miniFFT(re, im) {
+            var N = re.length;
+            for (var i = 0; i < N; i++) {
+                for (var j = 0, h = i, k = N; k >>= 1; h >>= 1)
+                    j = (j << 1) | (h & 1);
+                if (j > i) {
+                    re[j] = [re[i], re[i] = re[j]][0]
+                    im[j] = [im[i], im[i] = im[j]][0]
+                }
+            }
+            for (var hN = 1; hN * 2 <= N; hN *= 2)
+                for (var i = 0; i < N; i += hN * 2)
+                    for (var j = i; j < i + hN; j++) {
+                        var cos = Math.cos(Math.PI * (j - i) / hN),
+                            sin = Math.sin(Math.PI * (j - i) / hN)
+                        var tre = re[j + hN] * cos + im[j + hN] * sin,
+                            tim = -re[j + hN] * sin + im[j + hN] * cos;
+                        re[j + hN] = re[j] - tre; im[j + hN] = im[j] - tim;
+                        re[j] += tre; im[j] += tim;
+                    }
+        }
+        function miniDCT(s){ 
+                 var N = s.length, 
+                     K = -Math.PI / (2 * N), 
+                     re = new Float64Array(N), 
+                     im = new Float64Array(N); 
+                 for(var i = 0, j = N; j > i; i++){ 
+                         re[i] = s[i * 2] 
+                         re[--j] = s[i * 2 + 1] 
+                     } 
+                 miniFFT(re, im) 
+                 for(var i = 0; i < N; i++) 
+                         s[i] = 2*re[i]*Math.cos(K*i)-2*im[i]*Math.sin(K*i); 
+             } 
+        function miniIDCT(s){ 
+                 var N = s.length, 
+                     K = Math.PI / (2 * N), 
+                    im = new Float64Array(N), 
+                     re = new Float64Array(N); 
+                 re[0] = s[0] / N / 2; 
+                 for(var i = 1; i < N; i++){ 
+                        var im2 = Math.sin(i*K), re2 = Math.cos(i*K); 
+                         re[i] = (s[N - i] * im2 + s[i] * re2) / N / 2; 
+                         im[i] = (im2 * s[i] - s[N - i] * re2) / N / 2; 
+                     } 
+                 miniFFT(im, re) 
+                 for(var i = 0; i < N / 2; i++){ 
+                         s[2 * i] = re[i] 
+                         s[2 * i + 1] = re[N - i - 1] 
+                     } 
+             } 
+
+    </script>
+</body>
+</html>
